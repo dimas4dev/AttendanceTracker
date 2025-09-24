@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { getNoveltiesByClassroomClient } from '@/lib/client-data';
+import { getNoveltiesByClassroomClient, deleteNoveltyClient } from '@/lib/client-data';
 import { Calendar, User, FileText, AlertTriangle } from 'lucide-react';
 import type { Novelty } from '@/lib/types';
+import { DeleteConfirmationDialog } from './delete-confirmation-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface NoveltiesListProps {
   classroomId: string;
@@ -15,6 +17,7 @@ export function NoveltiesList({ classroomId }: NoveltiesListProps) {
   const [novelties, setNovelties] = useState<Novelty[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const loadNovelties = async () => {
@@ -33,6 +36,35 @@ export function NoveltiesList({ classroomId }: NoveltiesListProps) {
 
     loadNovelties();
   }, [classroomId]);
+
+  const handleDeleteNovelty = async (noveltyId: string, studentName: string) => {
+    try {
+      const result = await deleteNoveltyClient(noveltyId);
+      
+      if (result.success) {
+        // Actualizar la lista local removiendo la novedad eliminada
+        setNovelties(prev => prev.filter(n => n.id !== noveltyId));
+        
+        toast({
+          title: "Novedad eliminada",
+          description: `La novedad de ${studentName} ha sido eliminada correctamente.`,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting novelty:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la novedad. Inténtalo de nuevo.",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -138,9 +170,18 @@ export function NoveltiesList({ classroomId }: NoveltiesListProps) {
                     {novelty.studentDocument}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                  <Calendar className="h-3 w-3" />
-                  {new Date(novelty.createdAt).toLocaleDateString('es-CO')}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 text-xs text-gray-500">
+                    <Calendar className="h-3 w-3" />
+                    {new Date(novelty.createdAt).toLocaleDateString('es-CO')}
+                  </div>
+                  <DeleteConfirmationDialog
+                    title="Eliminar Novedad"
+                    description={`¿Estás seguro de que quieres eliminar la novedad de ${novelty.studentName}? Esta acción no se puede deshacer.`}
+                    onConfirm={() => handleDeleteNovelty(novelty.id, novelty.studentName)}
+                    triggerVariant="ghost"
+                    triggerSize="sm"
+                  />
                 </div>
               </div>
               
