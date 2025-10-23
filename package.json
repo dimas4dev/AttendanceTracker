@@ -13,7 +13,13 @@
     "populate-firebase": "tsx scripts/populate-firebase.ts",
     "test-firebase": "tsx scripts/test-firebase.ts",
     "create-classrooms": "tsx scripts/create-classrooms-only.ts",
-    "populate-students": "tsx scripts/populate-students.ts"
+    "populate-students": "tsx scripts/populate-students.ts",
+    "export-attendance": "tsx scripts/export-attendance-csv.ts",
+    "export-summary": "tsx scripts/export-attendance-summary.ts",
+    "diagnose-firebase": "tsx scripts/diagnose-firebase.ts",
+    "setup-firebase": "tsx scripts/setup-firebase.ts",
+    "test-date-attendance": "tsx scripts/test-date-attendance.ts",
+    "debug-firestore": "tsx scripts/debug-firestore.ts"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",

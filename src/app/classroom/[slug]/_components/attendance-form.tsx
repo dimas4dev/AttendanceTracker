@@ -4,13 +4,14 @@ import { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Check, Loader2, PartyPopper } from 'lucide-react';
+import { Check, Loader2, PartyPopper, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { type Student } from '@/lib/types';
 import { saveAttendance } from '../actions';
 import {
@@ -31,6 +32,7 @@ interface AttendanceFormProps {
 }
 
 const FormSchema = z.object({
+  attendanceDate: z.string().min(1, 'La fecha es obligatoria'),
   students: z.array(
     z.object({
       id: z.string(),
@@ -48,6 +50,7 @@ export default function AttendanceForm({ students, classroomId }: AttendanceForm
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
+      attendanceDate: format(new Date(), 'yyyy-MM-dd'),
       students: students.map(s => ({ id: s.id, name: s.name, absent: false })),
     },
   });
@@ -61,6 +64,7 @@ export default function AttendanceForm({ students, classroomId }: AttendanceForm
     setIsSubmitting(true);
     const formData = {
       classroomId,
+      attendanceDate: data.attendanceDate,
       students: data.students,
     };
     const result = await saveAttendance(students, formData);
@@ -70,16 +74,39 @@ export default function AttendanceForm({ students, classroomId }: AttendanceForm
     setIsSubmitting(false);
   }
   
-  const today = format(new Date(), "eeee, d 'de' MMMM 'de' yyyy", { locale: es });
+  const selectedDate = form.watch('attendanceDate');
+  const formattedDate = selectedDate ? format(new Date(selectedDate + 'T00:00:00'), "eeee, d 'de' MMMM 'de' yyyy", { locale: es }) : '';
 
   return (
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="text-center p-3 bg-secondary/50 rounded-lg">
-             <p className="font-semibold text-secondary-foreground">Registrando asistencia para hoy:</p>
-             <p className="text-lg font-bold text-primary">{today}</p>
-             <p className="text-sm text-muted-foreground mt-1">Marque la casilla si el estudiante está ausente.</p>
+          <div className="text-center p-4 bg-secondary/50 rounded-lg">
+             <p className="font-semibold text-secondary-foreground mb-3">Fecha de asistencia:</p>
+             
+             <FormField
+               control={form.control}
+               name="attendanceDate"
+               render={({ field }) => (
+                 <FormItem>
+                   <FormControl>
+                     <div className="flex flex-col items-center space-y-2">
+                       <Input
+                         type="date"
+                         {...field}
+                         className="text-center text-base border-primary/20 focus:border-primary w-auto"
+                         max={format(new Date(), 'yyyy-MM-dd')}
+                       />
+                       <p className="text-sm text-muted-foreground">
+                         Fecha seleccionada: <span className="font-medium text-primary">{formattedDate || 'Selecciona una fecha'}</span>
+                       </p>
+                     </div>
+                   </FormControl>
+                 </FormItem>
+               )}
+             />
+             
+             <p className="text-sm text-muted-foreground mt-3">Marque la casilla si el estudiante está ausente.</p>
           </div>
           <ScrollArea className="h-72 w-full pr-4">
             <div className="space-y-4">

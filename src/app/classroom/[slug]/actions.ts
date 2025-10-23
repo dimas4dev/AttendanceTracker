@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 
 const AttendanceSchema = z.object({
   classroomId: z.string(),
+  attendanceDate: z.string(),
   students: z.array(z.object({
     id: z.string(),
     absent: z.boolean(),
@@ -23,8 +24,22 @@ export async function saveAttendance(
     return { success: false, message: 'Datos inválidos.' };
   }
 
-  const { classroomId, students: studentStatuses } = parsed.data;
-  const date = format(new Date(), 'yyyy-MM-dd');
+  const { classroomId, attendanceDate, students: studentStatuses } = parsed.data;
+  
+  // Validar que la fecha no sea futura
+  const selectedDate = new Date(attendanceDate);
+  const today = new Date();
+  today.setHours(23, 59, 59, 999); // Permitir hasta el final del día actual
+  
+  if (selectedDate > today) {
+    return { success: false, message: 'No se puede registrar asistencia para fechas futuras.' };
+  }
+  
+  // Validar formato de fecha
+  const date = format(selectedDate, 'yyyy-MM-dd');
+  if (date !== attendanceDate) {
+    return { success: false, message: 'Formato de fecha inválido.' };
+  }
 
   const absentStudentIds = studentStatuses
     .filter(s => s.absent)
