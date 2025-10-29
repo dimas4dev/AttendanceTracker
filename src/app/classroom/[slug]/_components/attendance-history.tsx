@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getStudentsByClassroom } from '@/lib/data';
-import { removeStudentFromAbsentListClient, deleteAttendanceDayClient } from '@/lib/client-data';
+import { removeStudentFromAbsentListClient, deleteAttendanceDayClient, updateAttendanceDateClient } from '@/lib/client-data';
 import { type AttendanceRecord, type Student } from '@/lib/types';
 import {
   Accordion,
@@ -15,6 +15,7 @@ import { CalendarIcon, UserX } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { DeleteConfirmationDialog } from '@/components/delete-confirmation-dialog';
+import { EditDateDialog } from '@/components/edit-date-dialog';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -144,6 +145,49 @@ export default function AttendanceHistory({ history, classroomId }: AttendanceHi
     }
   };
 
+  const handleUpdateDate = async (oldDate: string, newDate: string) => {
+    try {
+      const result = await updateAttendanceDateClient(classroomId, oldDate, newDate);
+      
+      if (result.success) {
+        // Actualizar el historial procesado con la nueva fecha
+        setProcessedHistory(prev => prev.map(record => {
+          if (record.date === oldDate) {
+            const newDateObj = new Date(newDate + 'T00:00:00');
+            const formattedDate = format(newDateObj, "eeee, d 'de' MMMM 'de' yyyy", { locale: es });
+            return {
+              ...record,
+              date: newDate,
+              formattedDate,
+            };
+          }
+          return record;
+        }).sort((a, b) => b.date.localeCompare(a.date)));
+        
+        toast({
+          title: 'Fecha actualizada',
+          description: `La fecha se ha actualizado correctamente a ${format(new Date(newDate + 'T00:00:00'), "eeee, d 'de' MMMM 'de' yyyy", { locale: es })}.`,
+        });
+        
+        // Recargar la página para actualizar el historial completo
+        window.location.reload();
+      } else {
+        toast({
+          title: 'Error',
+          description: result.message,
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error updating date:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo actualizar la fecha. Inténtalo de nuevo.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Alert>
@@ -178,13 +222,21 @@ export default function AttendanceHistory({ history, classroomId }: AttendanceHi
               <span className="text-sm font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md">
                 {record.absentCount} Ausente(s)
               </span>
-              <DeleteConfirmationDialog
-                title="Eliminar Día de Asistencia"
-                description={"¿Estás seguro de eliminar completamente el registro de asistencia de este día? Esta acción no se puede deshacer."}
-                onConfirm={() => handleDeleteDay(record.date)}
-                triggerVariant="ghost"
-                triggerSize="sm"
-              />
+              <div className="flex items-center gap-2">
+                <EditDateDialog
+                  currentDate={record.date}
+                  onConfirm={(newDate) => handleUpdateDate(record.date, newDate)}
+                  triggerVariant="ghost"
+                  triggerSize="sm"
+                />
+                <DeleteConfirmationDialog
+                  title="Eliminar Día de Asistencia"
+                  description={"¿Estás seguro de eliminar completamente el registro de asistencia de este día? Esta acción no se puede deshacer."}
+                  onConfirm={() => handleDeleteDay(record.date)}
+                  triggerVariant="ghost"
+                  triggerSize="sm"
+                />
+              </div>
             </div>
           </AccordionTrigger>
           <AccordionContent>

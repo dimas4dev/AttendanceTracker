@@ -122,3 +122,67 @@ export async function deleteAttendanceDayClient(
     return { success: false, message: 'Error al eliminar el día de asistencia.' };
   }
 }
+
+export async function updateAttendanceDateClient(
+  classroomId: string,
+  oldDate: string,
+  newDate: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    // Validar que la nueva fecha no sea futura
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    const selectedDate = new Date(newDate + 'T00:00:00');
+    
+    if (selectedDate > today) {
+      return { success: false, message: 'No se puede cambiar la fecha a una fecha futura.' };
+    }
+
+    // Validar formato de fecha
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(newDate)) {
+      return { success: false, message: 'Formato de fecha inválido.' };
+    }
+
+    // Buscar el registro con la fecha antigua
+    const oldDateQuery = query(
+      collection(db, 'asistencias'),
+      where('classroomId', '==', classroomId),
+      where('date', '==', oldDate)
+    );
+
+    const oldDateSnapshot = await getDocs(oldDateQuery);
+
+    if (oldDateSnapshot.empty) {
+      return { success: false, message: 'No se encontró el registro de asistencia para esta fecha.' };
+    }
+
+    // Verificar si ya existe un registro con la nueva fecha
+    const newDateQuery = query(
+      collection(db, 'asistencias'),
+      where('classroomId', '==', classroomId),
+      where('date', '==', newDate)
+    );
+
+    const newDateSnapshot = await getDocs(newDateQuery);
+
+    if (!newDateSnapshot.empty) {
+      return { 
+        success: false, 
+        message: `Ya existe un registro de asistencia para la fecha ${newDate}. Por favor, elimina o edita ese registro primero.` 
+      };
+    }
+
+    // Actualizar la fecha del documento
+    const docRef = oldDateSnapshot.docs[0].ref;
+    await updateDoc(docRef, {
+      date: newDate,
+      updatedAt: serverTimestamp(),
+    });
+
+    return { success: true, message: 'Fecha de asistencia actualizada correctamente.' };
+  } catch (error) {
+    console.error('Error updating attendance date:', error);
+    return { success: false, message: 'Error al actualizar la fecha de asistencia.' };
+  }
+}
