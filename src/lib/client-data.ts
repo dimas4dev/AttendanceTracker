@@ -95,3 +95,30 @@ export async function removeStudentFromAbsentListClient(
     return { success: false, message: 'Error al eliminar la inasistencia.' };
   }
 }
+
+export async function deleteAttendanceDayClient(
+  classroomId: string,
+  date: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const q = query(
+      collection(db, 'asistencias'),
+      where('classroomId', '==', classroomId),
+      where('date', '==', date)
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      return { success: false, message: 'No se encontró el registro de asistencia para esta fecha.' };
+    }
+
+    const docRef = querySnapshot.docs[0].ref;
+    await deleteDoc(docRef);
+
+    return { success: true, message: 'Día de asistencia eliminado correctamente.' };
+  } catch (error) {
+    console.error('Error deleting attendance day:', error);
+    return { success: false, message: 'Error al eliminar el día de asistencia.' };
+  }
+}

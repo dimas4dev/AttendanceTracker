@@ -16,6 +16,7 @@
     "populate-students": "tsx scripts/populate-students.ts",
     "export-attendance": "tsx scripts/export-attendance-csv.ts",
     "export-summary": "tsx scripts/export-attendance-summary.ts",
+    "export-absents": "tsx scripts/export-absent-students.ts",
     "diagnose-firebase": "tsx scripts/diagnose-firebase.ts",
     "setup-firebase": "tsx scripts/setup-firebase.ts",
     "test-date-attendance": "tsx scripts/test-date-attendance.ts",

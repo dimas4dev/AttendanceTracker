@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getStudentsByClassroom } from '@/lib/data';
-import { removeStudentFromAbsentListClient } from '@/lib/client-data';
+import { removeStudentFromAbsentListClient, deleteAttendanceDayClient } from '@/lib/client-data';
 import { type AttendanceRecord, type Student } from '@/lib/types';
 import {
   Accordion,
@@ -118,6 +118,32 @@ export default function AttendanceHistory({ history, classroomId }: AttendanceHi
     }
   };
 
+  const handleDeleteDay = async (date: string) => {
+    try {
+      const result = await deleteAttendanceDayClient(classroomId, date);
+      if (result.success) {
+        setProcessedHistory(prev => prev.filter(record => record.date !== date));
+        toast({
+          title: 'Día eliminado',
+          description: 'El registro de asistencia de ese día fue eliminado.',
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: result.message,
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting attendance day:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudo eliminar el día de asistencia. Inténtalo de nuevo.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Alert>
@@ -147,11 +173,18 @@ export default function AttendanceHistory({ history, classroomId }: AttendanceHi
       {processedHistory.map((record) => (
         <AccordionItem key={record.date} value={record.date}>
           <AccordionTrigger className="text-base hover:no-underline">
-            <div className='flex items-center justify-between w-full pr-4'>
-              <span>{record.formattedDate}</span>
+            <div className='flex items-center justify-between w-full pr-4 gap-3'>
+              <span className="flex-1 text-left">{record.formattedDate}</span>
               <span className="text-sm font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md">
                 {record.absentCount} Ausente(s)
               </span>
+              <DeleteConfirmationDialog
+                title="Eliminar Día de Asistencia"
+                description={"¿Estás seguro de eliminar completamente el registro de asistencia de este día? Esta acción no se puede deshacer."}
+                onConfirm={() => handleDeleteDay(record.date)}
+                triggerVariant="ghost"
+                triggerSize="sm"
+              />
             </div>
           </AccordionTrigger>
           <AccordionContent>
